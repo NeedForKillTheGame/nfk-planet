@@ -11,7 +11,7 @@
 
 #define IN_ADDR__S_ADDR     S_un.S_addr
 #define CLOSESOCKET         closesocket
-#define MSG_NOSIGNAL		0
+#define MSG_NOSIGNAL        0
 
 #define SLEEP(x)            Sleep((x) * 1000)
 
@@ -89,7 +89,7 @@ typedef struct _planet_client
     int writing;
     /* server that the client has created */
     struct _planet_server *server;
-	time_t lastPingTime;
+    time_t lastPingTime;
 } planet_client;
 
 typedef struct _planet_server
@@ -115,9 +115,9 @@ unsigned int numberOfServers = 0;
 const char oldVersionMsg[] = "L127.0.0.1\rYour version of NF\rK is too old\r1\r1\r1\r\n\0"
                              "L127.0.0.1\rPlease download\rthe latest version\r1\r1\r1\r\n\0"
                              "L127.0.0.1\rfrom\r^2needforkill.ru     \r1\r1\r1\r\n\0"
-							 "L127.0.0.1\r\r\r1\r1\r1\r\n\0"
-							 "L127.0.0.1\rCKA4AUTE HOBY|-0\rNFK C CAUTA\r1\r1\r1\r\n\0"
-							 "L127.0.0.1\r^2needforkill.ru    \r\r1\r1\r1\r\n\0E\n\0";
+                             "L127.0.0.1\r\r\r1\r1\r1\r\n\0"
+                             "L127.0.0.1\rCKA4AUTE HOBY|-0\rNFK C CAUTA\r1\r1\r1\r\n\0"
+                             "L127.0.0.1\r^2needforkill.ru    \r\r1\r1\r1\r\n\0E\n\0";
 
 void planetServerRemove(planet_server *server);
 
@@ -221,26 +221,26 @@ int convertToWc(wchar_t *dst, char *src, int maxLength)
 // mutexes on *nix is hard
 int initMutex()
 {
-	pthread_mutexattr_t attr;
+    pthread_mutexattr_t attr;
 
-	if (pthread_mutexattr_init(&attr))
-	{
-		return 0;
-	}
+    if (pthread_mutexattr_init(&attr))
+    {
+        return 0;
+    }
 
-	if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE))
-	{
-		pthread_mutexattr_destroy(&attr);
-		return 0;
-	}
+    if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE))
+    {
+        pthread_mutexattr_destroy(&attr);
+        return 0;
+    }
 
-	if (pthread_mutex_init(&planetMutex, &attr))
-	{
-		pthread_mutexattr_destroy(&attr);
-		return 0;
-	}
+    if (pthread_mutex_init(&planetMutex, &attr))
+    {
+        pthread_mutexattr_destroy(&attr);
+        return 0;
+    }
 
-	return 1;
+    return 1;
 }
 
 #endif
@@ -382,7 +382,7 @@ void onClientConnect(SOCKET serv)
     client->version = 0;
     client->writing = 0;
     client->server = NULL;
-	time(&client->lastPingTime);
+    time(&client->lastPingTime);
     /* initial size of outBuffer - 2kb */
     client->outBufLen = 0;
     client->outBufCapacity = 2048;
@@ -537,13 +537,13 @@ int onClientCommand(planet_client *client, char *command, int cmdLen)
             }
 
             /* don't let old clients create servers, drop them instead */
-			if (client->version < 76)
-			{
-				return 0;
-			}
-			
-			client->port = atoi(command + 2);
-			
+            if (client->version < 76)
+            {
+                return 0;
+            }
+            
+            client->port = atoi(command + 2);
+            
             for (newServer = firstServer; newServer; newServer = newServer->next)
             {
                 if (strcmp(newServer->owner->ip, client->ip) == 0 && newServer->owner->port == client->port)
@@ -562,7 +562,7 @@ int onClientCommand(planet_client *client, char *command, int cmdLen)
                 wprintf(L"Out of memory, client dropped\n");
                 return 0;
             }
-			
+            
             client->server = newServer;
             newServer->owner = client;
             wcscpy(newServer->hostname, L"null");
@@ -655,7 +655,7 @@ int onClientCommand(planet_client *client, char *command, int cmdLen)
             client->outBufLen += 3;
             client->writing = 1;
 
-			time(&client->lastPingTime);
+            time(&client->lastPingTime);
         }
         break;
     case 'X':   /* ask for invite */
@@ -811,11 +811,11 @@ void planet()
     numberOfClients = 0;
 
     if (!LOCK_INIT)
-	{
-		wprintf(L"can't create lock mutex\n");
-		CLOSESOCKET(serv);
-		return;
-	}
+    {
+        wprintf(L"can't create lock mutex\n");
+        CLOSESOCKET(serv);
+        return;
+    }
 
     while (1)
     {
@@ -946,33 +946,33 @@ void planet()
 /* ping timeout-ing */
 THREAD_RETURN_TYPE timerFunction(void *param)
 {
-	while (1)
-	{
-		planet_client *currentClient, *nextClient;
-		time_t currentTime;
+    while (1)
+    {
+        planet_client *currentClient, *nextClient;
+        time_t currentTime;
 
-		time(&currentTime);
+        time(&currentTime);
 
-		LOCK;
-		
-		for (currentClient = firstClient; currentClient != NULL; currentClient = nextClient)
-		{
-			nextClient = currentClient->next;
+        LOCK;
+        
+        for (currentClient = firstClient; currentClient != NULL; currentClient = nextClient)
+        {
+            nextClient = currentClient->next;
 
-			if ((currentTime - currentClient->lastPingTime) > CLIENT_PING_TIMEOUT)
-			{
-				wprintf(L"removing client %hs (ping timeout)\n", currentClient->ip);
-				planetClientRemove(currentClient);
-				continue;
-			}
-		}
+            if ((currentTime - currentClient->lastPingTime) > CLIENT_PING_TIMEOUT)
+            {
+                wprintf(L"removing client %hs (ping timeout)\n", currentClient->ip);
+                planetClientRemove(currentClient);
+                continue;
+            }
+        }
 
-		UNLOCK;
+        UNLOCK;
 
-		SLEEP(10);
-	}
+        SLEEP(10);
+    }
 
-	return 0;
+    return 0;
 }
 
 #ifndef _WIN32
@@ -1015,34 +1015,34 @@ int main(int argc, char **argv)
 {
 #ifdef _WIN32
     WSADATA wd;
-	HANDLE hThread;
+    HANDLE hThread;
 
     if (WSAStartup(0x0202, &wd) != 0)
     {
         wprintf(L"WSAStartup() failed\n");
-		return 1;
+        return 1;
     }
 #else
-	pthread_t thread;
+    pthread_t thread;
 
     //daemonize();
     writepid();
 #endif
 
 #ifdef _WIN32
-	hThread = (HANDLE)_beginthreadex(NULL, 0, timerFunction, NULL, 0, NULL);
-	if (hThread == 0)
-	{
-		wprintf(L"can't start timer thread\n");
-		return 1;
-	}
-	CloseHandle(hThread);
+    hThread = (HANDLE)_beginthreadex(NULL, 0, timerFunction, NULL, 0, NULL);
+    if (hThread == 0)
+    {
+        wprintf(L"can't start timer thread\n");
+        return 1;
+    }
+    CloseHandle(hThread);
 #else
-	if (pthread_create(&thread, NULL, timerFunction, NULL))
-	{
-		wprintf(L"can't start timer thread\n");
-		return 1;
-	}
+    if (pthread_create(&thread, NULL, timerFunction, NULL))
+    {
+        wprintf(L"can't start timer thread\n");
+        return 1;
+    }
 #endif
 
     planet();
