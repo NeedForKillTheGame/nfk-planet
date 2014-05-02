@@ -1,6 +1,9 @@
 #define FD_SETSIZE 256
 
+#include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -59,14 +62,17 @@ pthread_mutex_t planetMutex;
 
 #endif
 
-#define PLANET_PORT         10003
-#define PLANET_HOST         "127.0.0.1"     // change this to your server IP
+#define DEFAULT_PLANET_PORT         10003
+#define DEFAULT_PLANET_HOST         "127.0.0.1"     // change this to your server IP
 #define PLANET_VERSION      "077"
 #define PLANET_VERSION_NUMBER 77
 #define PLANET_MAX_INPUT    256
 #define PLANET_MAX_CLIENTS  256
 /* ping timeout for clients in seconds */
 #define CLIENT_PING_TIMEOUT 600
+
+int planet_port = 0;
+char *planet_host = NULL;
 
 typedef struct _planet_client
 {
@@ -783,8 +789,8 @@ void planet()
     memset(&addr, 0, sizeof(addr));
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(PLANET_PORT);
-    addr.sin_addr.IN_ADDR__S_ADDR = inet_addr(PLANET_HOST);
+    addr.sin_port = htons(planet_port);
+    addr.sin_addr.IN_ADDR__S_ADDR = inet_addr(planet_host);
 
     if (bind(serv, (struct sockaddr*)&addr, sizeof(addr)) != 0)
     {
@@ -1011,6 +1017,104 @@ void daemonize()
 }
 #endif
 
+void loadConfig() {
+    const char *HOST_KEY = "host";
+    const char *PORT_KEY = "port";
+    const char DELIMETER = '=';
+
+    FILE *fp;
+    const int len = 256;
+    char line[len];
+    char *delimeterPos;
+
+    int readHost = 0;
+    int readPort = 0;
+
+    fp = fopen("./config.cfg", "a+");
+
+    if (fp == NULL) {
+        wprintf(L"Couldn't open the config file. Check write permissions.\n");
+        return;
+    }
+
+    while (fgets(line, len, fp) != NULL) {
+        // remove '\n' that fgets reads
+        size_t readLen = strlen(line);
+        line[readLen - 1] = '\0';
+        readLen -= 2;
+
+#ifdef _DEBUG
+        wprintf(L"\nLine read: \"%hs\"\n", line);
+#endif
+
+        delimeterPos = strchr(line, DELIMETER);
+
+        if (delimeterPos == NULL) {
+            wprintf(L"No delimeter '%hc' found\n", DELIMETER);
+            continue;
+        }
+        if (delimeterPos == line) {
+            wprintf(L"No key found\n");
+            continue;
+        }
+        // split string in two: line -> key and delimeterPos + 1 -> value
+        delimeterPos[0] = '\0';
+
+        char *key = line;
+        char *value = delimeterPos + 1;
+        size_t valueLen = strlen(value);
+
+        if (valueLen == 0) {
+            wprintf(L"No value found\n");
+            continue;
+        }
+
+        // lowercase the key
+        char *p;
+        for (p = key; p < delimeterPos; ++p) {
+            *p = tolower(*p);
+        }
+
+        // do stuff based on key
+        if (strcmp(key, HOST_KEY) == 0) {
+#ifdef _DEBUG
+            wprintf(L"Found \"%hs\"\n", key);
+#endif
+            readHost = 1;
+            planet_host = malloc(valueLen + 1);
+            strcpy(planet_host, value);
+        } else if (strcmp(key, PORT_KEY) == 0) {
+#ifdef _DEBUG
+            wprintf(L"Found \"%hs\"\n", key);
+#endif
+            readPort = 1;
+            planet_port = atoi(value);
+        }
+    }
+
+    // write defaults if not found
+    if (!readHost) {
+#ifdef _DEBUG
+        wprintf(L"\nNo \"%hs\" found, appending the default value: \"%hs\" to the config file\n", HOST_KEY, DEFAULT_PLANET_HOST);
+#endif
+        fprintf(fp, "%s%c%s\n", HOST_KEY, DELIMETER, DEFAULT_PLANET_HOST);
+        planet_host = malloc(strlen(DEFAULT_PLANET_HOST) + 1);
+        strcpy(planet_host, DEFAULT_PLANET_HOST);
+    }
+    if (!readPort) {
+#ifdef _DEBUG
+        wprintf(L"\nNo \"%hs\" found, appending the default value: \"%d\" to the config file\n", PORT_KEY, DEFAULT_PLANET_PORT);
+#endif
+        fprintf(fp, "%s%c%d\n", PORT_KEY, DELIMETER, DEFAULT_PLANET_PORT);
+        planet_port = DEFAULT_PLANET_PORT;
+    }
+
+    wprintf(L"\nSet %hs=\"%hs\"\n", HOST_KEY, planet_host);
+    wprintf(L"Set %hs=%d\n", PORT_KEY, planet_port);
+
+    fclose(fp);
+}
+
 int main(int argc, char **argv)
 {
 #ifdef _WIN32
@@ -1026,6 +1130,7 @@ int main(int argc, char **argv)
     pthread_t thread;
 
     //daemonize();
+    loadConfig();
     writepid();
 #endif
 
@@ -1050,6 +1155,10 @@ int main(int argc, char **argv)
 #ifdef _WIN32
     WSACleanup();
 #endif
+
+    if (planet_host != NULL) {
+        free(planet_host);
+    }
 
     return 0;
 }
