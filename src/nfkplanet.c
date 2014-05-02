@@ -1137,9 +1137,10 @@ int main(int argc, char **argv)
     pthread_t thread;
 
     //daemonize();
-    loadConfig();
     writepid();
 #endif
+
+    loadConfig();
 
 #ifdef _WIN32
     hThread = (HANDLE)_beginthreadex(NULL, 0, timerFunction, NULL, 0, NULL);
