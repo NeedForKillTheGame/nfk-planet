@@ -1,6 +1,0 @@
-vcproj\..*$
-\.suo$
-\.ncb$
-^msvs2008/Release/
-^msvs2008/Debug/
-^bin/

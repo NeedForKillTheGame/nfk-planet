@@ -1,6 +1,6 @@
 MAKE = make
 CC = gcc
-CFLAGS = -fpic -Wall -O3 -lpthread -D_GNU_SOURCE
+CFLAGS = -fpic -Wall -O3 -pthread -D_GNU_SOURCE
 INCDIR = /usr/local/include
 LIBDIR = /usr/local/lib
 SHELL = /bin/bash
