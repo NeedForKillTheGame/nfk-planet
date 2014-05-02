@@ -791,6 +791,13 @@ void planet()
     addr.sin_family = AF_INET;
     addr.sin_port = htons(planet_port);
     addr.sin_addr.IN_ADDR__S_ADDR = inet_addr(planet_host);
+    
+    int yes = 1;
+    if (setsockopt(serv, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
+        wprintf(L"setsockopt() failed\n");
+        CLOSESOCKET(serv);
+        return;
+    }
 
     if (bind(serv, (struct sockaddr*)&addr, sizeof(addr)) != 0)
     {
